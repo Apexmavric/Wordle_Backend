@@ -4,6 +4,8 @@ const Player = require('../models/Player');
 const {BadRequestError, UnauthenticatedError} = require('../errors');
 
 const Register = async(req, res)=>{
+    // console.log('Register');
+    // console.log(req.body);
     const {name, password} = req.body;
     const user = await Player.create({name : name , password : password});
     const token = user.createJwt();
@@ -22,7 +24,7 @@ const Login = async(req, res)=>{
         throw new UnauthenticatedError('Invalid Password !!');
     }
     const token = user.createJwt();
-    res.status(StatusCodes.CREATED).json({player : {playerId : user._id, playerName : user.name}, token});
+    res.status(StatusCodes.OK).json({player : {playerId : user._id, playerName : user.name}, token});
 }   
 
 

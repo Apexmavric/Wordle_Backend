@@ -9,7 +9,7 @@ const authHandler = async(req, res, next)=>{
     const token = authheader.split(' ')[1];
     try{
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = {playerId : payload.id, playerName:payload.name};
+        req.player = {playerId : payload.playerId, playerName:payload.playerName};
         next();
     }
     catch(err){

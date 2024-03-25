@@ -23,7 +23,13 @@ const PlayerSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'Player',
        required:false
-    }]
+    }],
+    data:{
+        type:Buffer
+    },
+    contentType:{
+        type:String
+    }
 });
 
 PlayerSchema.pre('save', async function(next){
@@ -32,7 +38,8 @@ PlayerSchema.pre('save', async function(next){
     next();
 })
 PlayerSchema.methods.createJwt = function(){
-    const token = jwt.sign({playerId : this._id}, process.env.JWT_SECRET, {expiresIn:`${process.env.LIFE_TIME}`});
+    console.log(this._id);
+    const token = jwt.sign({playerId : this._id, playerName : this.name}, process.env.JWT_SECRET, {expiresIn:`${process.env.LIFE_TIME}`});
     return token;
 }
 
