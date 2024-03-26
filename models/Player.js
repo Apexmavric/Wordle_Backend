@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { func } = require('joi');
+const fs = require('fs');
+const path = require('path');
 const PlayerSchema = new mongoose.Schema({
     name:{
         type:String,
@@ -22,19 +23,32 @@ const PlayerSchema = new mongoose.Schema({
     friends: [{
         type: mongoose.Types.ObjectId,
         ref: 'Player',
-       required:false
     }],
     data:{
-        type:Buffer
+        type:Buffer,
+        default: () => {
+            const imagePath = path.join(__dirname, './default-pic.jpg');
+            return fs.readFileSync(imagePath);
+        }
     },
     contentType:{
         type:String
     }
+    ,
+    word:{
+        type: String
+    },
+    hint:{
+        type: String
+    },
 });
 
 PlayerSchema.pre('save', async function(next){
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    if (!this.friends.includes(this._id)) {
+        this.friends.push(this._id);
+    }
     next();
 })
 PlayerSchema.methods.createJwt = function(){
