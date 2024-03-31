@@ -15,11 +15,6 @@ const PlayerSchema = new mongoose.Schema({
         required:[true, 'Please provide a Password'],
         maxlength:50
     },
-    score:{
-        type:Number,
-        default:0,
-        maxlength:50
-    },
     friends: [{
         type: mongoose.Types.ObjectId,
         ref: 'Player',
@@ -41,6 +36,37 @@ const PlayerSchema = new mongoose.Schema({
     hint:{
         type: String
     },
+    stats: {
+        score: {
+            type: Number,
+            default: 0
+        },
+        maxScore: {
+            type: Number,
+            default: 0
+        },
+        maxStreak: {
+            type: Number,
+            default: 0
+        },
+        gamesPlayed: {
+            type: Number,
+            default: 0
+        },
+        currentStreak:{
+            type: Number,
+            default:0
+        },
+        wins:{
+            type: Number,
+            default:0
+        },
+        gameHistory: [{
+            type: mongoose.Types.ObjectId,
+            ref: 'Games',
+        }]
+    }
+
 });
 
 PlayerSchema.pre('save', async function(next){

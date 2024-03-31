@@ -1,5 +1,6 @@
 const { BadRequestError } = require('../errors');
 const Player = require('../models/Player');
+const Games = require('../models/Games');
 require('dotenv').config();
 const reset = async(req, res)=>{
     const resp = await fetch(process.env.WORD_FETCH);
@@ -31,7 +32,7 @@ const reset = async(req, res)=>{
 
 const verify = async(req, res)=>{
     const {playerId} = req.player;
-    const {word, time , row} = req.body;
+    let {word, time , row} = req.body;
     let player = await Player.findById(playerId);
     if(!player)
     {
@@ -39,10 +40,24 @@ const verify = async(req, res)=>{
     }
     const actualword = player.word;
     const arr = Array(5).fill(1);
+    let newScore,newMax,currStreak,maxStreak,newGames,wins=0;
     if(actualword === word)
     {   
-        const newScore = player.score + Number(time);
-        await Player.findByIdAndUpdate(playerId, {word : "", hint : "", score :newScore });
+        newScore = player.stats.score + Number(time);
+        newGames = player.stats.gamesPlayed + 1;
+        newMax = Math.max(time, player.stats.maxScore);
+        currStreak = player.stats.currentStreak + 1;
+        maxStreak = Math.max(player.stats.maxStreak, currStreak);
+        wins = player.stats.wins + 1;
+        await Player.findByIdAndUpdate(playerId, {word : "", hint : "", stats:{score :newScore, maxScore : newMax,  maxStreak : maxStreak, gamesPlayed : newGames, currentStreak : currStreak,wins:wins}});
+        let date = new Date(Date.now());
+        let options = {
+        timeZone: 'Asia/Kolkata',
+        hour12: true 
+        }
+        date = date.toLocaleString('en-IN', options).split('p')[0];
+        date = date.split(',').join(" ");
+        await Games.create({date : date, playedBy : playerId, score : time, mode : 'SinglePlayer'});
         return res.status(200).json({status : 'right', arr : arr});
     }
     for(let i = 0; i<actualword.length; i++)
@@ -60,15 +75,36 @@ const verify = async(req, res)=>{
                 arr[i] = 2; 
             }
     }
-    if(row === 4)
-    {
-        res.status(200).json({status : 'wrong', arr : arr, word: actualword});
-        await Player.findByIdAndUpdate(playerId, {word : "", hint : ""}) ;
-        return;
+    if(row === 4 || time <=0)
+    {       
+        time=0;
+        newScore = player.stats.score + Number(time);
+        newGames = player.stats.gamesPlayed + 1;
+        newMax = Math.max(time, player.stats.maxScore);
+        currStreak = player.stats.currentStreak;
+        maxStreak = Math.max(player.stats.maxStreak, currStreak);
+        await Player.findByIdAndUpdate(playerId, {word : "", hint : "", stats:{score :newScore, maxScore : newMax,  maxStreak : maxStreak, gamesPlayed : newGames, currentStreak : 0} }); 
+        let date = new Date(Date.now());
+        let options = {
+        timeZone: 'Asia/Kolkata',
+        hour12: true 
+        }
+        date = date.toLocaleString('en-IN', options).split('p')[0];
+        date = date.split(',').join(" ");
+        await Games.create({date :  date, playedBy : playerId, score : time, mode : 'SinglePlayer'});
+        return res.status(200).json({status : 'wrong', arr : arr, word: actualword});
     }
     res.status(200).json({status : 'wrong', arr : arr});
 }
+
+const getGameDetails = async(req, res)=>{
+    const {playerId} = req.player;
+    const games = await Games.find({playedBy : playerId});
+    console.log('games');
+    res.status(200).json({gameDetails : games});
+}
 module.exports ={
     reset,
-    verify
+    verify,
+    getGameDetails
 }

@@ -8,8 +8,8 @@ const getDetails = async(req, res)=>{
     {
         throw new BadRequestError('Player doesnt exist');
     }
-    const {name, score, friends} = player;
-    const newPlayer = {name, score, friends};
+    const {name, score, friends, stats} = player;
+    const newPlayer = {name, score, friends, stats};
     res.status(StatusCodes.OK).json({playerDetails : newPlayer});
 }
 const searchRecommendation = async(req, res)=>{
@@ -31,10 +31,9 @@ const searchRecommendation = async(req, res)=>{
 }
 const getAllPlayerDetails = async(req, res)=>{
     console.log('All Player Details');
-    const player = await Player.find().sort({score : -1});
+    const player = await Player.find().sort({"stats.score" : -1});
     const newPlayer = player.map(e=>{
-       const {name, score , _id} = e;
-       return {playerName : name, playerScore : score, playerId : _id};
+       return {playerName : e.name, playerScore : e.stats.score, playerId : e._id};
     })
     res.status(StatusCodes.OK).json({playerDetails : newPlayer});
 }
@@ -128,7 +127,7 @@ const uploadImage = async(req, res)=>{
 }
 
 const getTime = async(req, res)=>{
-    res.status(200).json({time : 120});
+    res.status(200).json({time : 20});
 }
 module.exports = {
     getDetails,
