@@ -1,7 +1,7 @@
 
 const {BadRequestError, UnauthenticatedError} = require('../errors');
 const jwt = require('jsonwebtoken');
-const authHandler = async(socket, next)=>{
+const ioauth = async(socket, next)=>{
     const token = socket.handshake.auth.token;
     if(!token)
     {
@@ -9,11 +9,12 @@ const authHandler = async(socket, next)=>{
     }
     try{
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        socket.player = 
+        socket.player = {playerId : payload.playerId, roomId : payload.roomId};
+        next();
     }
     catch{
         throw new UnauthenticatedError('Authentication Invalid');   
     }
 }
 
-module.exports = authHandler;
+module.exports = ioauth;

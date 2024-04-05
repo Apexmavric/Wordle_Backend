@@ -14,6 +14,7 @@ const Register = async(req, res)=>{
 
 const Login = async(req, res)=>{
     const {name, password} = req.body;
+
     const user = await Player.findOne({name});
     if(!user)
     {
@@ -26,6 +27,7 @@ const Login = async(req, res)=>{
     const token = user.createJwt();
     res.status(StatusCodes.OK).json({player : {playerId : user._id, playerName : user.name}, token});
 }   
+
 
 
 module.exports = {Register, Login};

@@ -10,6 +10,40 @@ const connectdB = require('./db/connect');
 const errorHandlerMiddleware = require('./middleware/errorhandler'); 
 const notfoundMiddleware = require('./middleware/not-found');
 const authMiddleware = require('./middleware/auth');
+const ioauth = require('./middleware/io-auth');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const server = createServer(app);
+const io = new Server(server, {
+    // Configure CORS for socket.io
+    cors: {
+      origin: "*", // Allow requests from this origin
+      methods: ["GET", "POST"] // Allow only GET and POST requests
+    }
+  });
+const { joinRoom, createRoom, LeaveRoom, kickOutPerson, Refresh } = require('./controllers/io');
+
+io.on('connection', (socket) => {
+    socket.on('join-room', (roomName, playerName)=>{
+        joinRoom(io,socket, roomName, playerName);
+    });
+
+    socket.on('create-room',(playerName)=>{
+        // console.log(roomName);
+        createRoom(io, socket, playerName);
+    });
+    socket.on('leave-room', (roomName, playerName)=>{
+        console.log(" i was here")
+        LeaveRoom(io, socket, roomName, playerName);
+    });
+
+    socket.on('kick-out' ,(roomName, playerName, adminName)=>{
+        kickOutPerson(io, socket, roomName, playerName, adminName);
+    } )
+    socket.on('refresh-ids',(playerName)=>{
+        Refresh(socket, playerName);
+    } )
+});
 
 app.use(express.json());
 app.use(cors());
@@ -19,13 +53,14 @@ app.use('/api/v1/game', authMiddleware, gameRoutes);
 app.use(errorHandlerMiddleware);
 app.use(notfoundMiddleware);
 
+
 const port = process.env.PORT || 5000;
 
 const start = async () => {
     try {
         await connectdB(process.env.MONGO_URI);
         console.log('Connected to DB...');
-        app.listen(port, () =>
+        server.listen(port, () =>
             console.log(`Server is listening on port ${port}...`)
         );
     } catch (error) {

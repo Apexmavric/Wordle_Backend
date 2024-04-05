@@ -15,6 +15,7 @@ const getDetails = async(req, res)=>{
 const searchRecommendation = async(req, res)=>{
     const {name} = req.body;
     let player;
+    // console.log(name);
     if(name)
     {
         player = await Player.find({name : { $regex : `${name}`, $options : 'i'} });
@@ -119,6 +120,7 @@ const getImage = async(req, res)=>{
 const uploadImage = async(req, res)=>{
    
     const {playerId} = req.player;
+    console.log(playerId);
     const player = await Player.findByIdAndUpdate(playerId, {data : req.file.buffer , contentType:req.file.mimetype}, {new: true});
     if(!player){
         throw BadRequestError('Player doesnt exist');
@@ -127,7 +129,7 @@ const uploadImage = async(req, res)=>{
 }
 
 const getTime = async(req, res)=>{
-    res.status(200).json({time : 20});
+    res.status(200).json({time : 120});
 }
 module.exports = {
     getDetails,
