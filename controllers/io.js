@@ -121,10 +121,16 @@ const kickOutPerson = async(io, socket, roomName, playerName, adminName)=>{
     }
 }
 
+
+const gameInfo = (io, socket, roomName, rounds, time)=>{
+    io.to(roomName).emit('get-game-info', {Rounds : rounds, Time : time});
+}
+
 module.exports = {
     joinRoom,
     createRoom,
     LeaveRoom,
     kickOutPerson,
-    Refresh
+    Refresh,
+    gameInfo
 }

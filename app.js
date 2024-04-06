@@ -15,13 +15,12 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const server = createServer(app);
 const io = new Server(server, {
-    // Configure CORS for socket.io
     cors: {
-      origin: "*", // Allow requests from this origin
-      methods: ["GET", "POST"] // Allow only GET and POST requests
+      origin: "*", 
+      methods: ["GET", "POST"] 
     }
   });
-const { joinRoom, createRoom, LeaveRoom, kickOutPerson, Refresh } = require('./controllers/io');
+const { joinRoom, createRoom, LeaveRoom, kickOutPerson, Refresh , gameInfo} = require('./controllers/io');
 
 io.on('connection', (socket) => {
     socket.on('join-room', (roomName, playerName)=>{
@@ -29,7 +28,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('create-room',(playerName)=>{
-        // console.log(roomName);
         createRoom(io, socket, playerName);
     });
     socket.on('leave-room', (roomName, playerName)=>{
@@ -42,6 +40,10 @@ io.on('connection', (socket) => {
     } )
     socket.on('refresh-ids',(playerName)=>{
         Refresh(socket, playerName);
+    } )
+
+    socket.on('game-infos',(roomName, rounds, time)=>{
+        gameInfo(io, socket, roomName, rounds, time);
     } )
 });
 
