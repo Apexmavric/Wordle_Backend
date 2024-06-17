@@ -1,6 +1,8 @@
 const express = require('express');
 const Router = express.Router();
-const {getDetails, updateScore, addFriends, deleteFriend, getAllPlayerDetails, searchRecommendation, getImage, uploadImage, getFriends, getTime} = require('../controllers/player');
+const {getDetails, updateScore, addFriends, deleteFriend, 
+    getAllPlayerDetails, searchRecommendation, getImage, 
+    uploadImage, getFriends, getTime} = require('../controllers/player');
 
 const multer = require('multer');
 const storage = multer.memoryStorage();

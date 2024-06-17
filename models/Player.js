@@ -3,37 +3,48 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
+
 const PlayerSchema = new mongoose.Schema({
-    name:{
-        type:String,
-        required:[true, 'Please provide a username'],
-        maxlength:30,
-        unique:true
+    name: {
+        type: String,
+        required: [true, 'Please provide a username'],
+        maxlength: 30,
+        minlength: 4,
+        unique: true
     },
-    password:{
-        type:String,
-        required:[true, 'Please provide a Password'],
-        maxlength:50
+    email: {
+        type: String,
+        required: [true, 'Please provide an email'],
+        unique: true,
+        match: [
+            /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+            'Please provide a valid email'
+        ]
+    },
+    password: {
+        type: String,
+        required: [true, 'Please provide a Password'],
     },
     friends: [{
-        type: mongoose.Types.ObjectId,
-        ref: 'Player',
+        playerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Player'
+        },
     }],
-    data:{
-        type:Buffer,
+    data: {
+        type: Buffer,
         default: () => {
             const imagePath = path.join(__dirname, './default-pic.jpg');
             return fs.readFileSync(imagePath);
         }
     },
-    contentType:{
-        type:String
-    }
-    ,
-    word:{
+    contentType: {
         type: String
     },
-    hint:{
+    word: {
+        type: String
+    },
+    hint: {
         type: String
     },
     stats: {
@@ -53,40 +64,30 @@ const PlayerSchema = new mongoose.Schema({
             type: Number,
             default: 0
         },
-        currentStreak:{
+        currentStreak: {
             type: Number,
-            default:0
+            default: 0
         },
-        wins:{
+        wins: {
             type: Number,
-            default:0
+            default: 0
         },
         gameHistory: [{
             type: mongoose.Types.ObjectId,
             ref: 'Games',
         }]
     }
-
 });
 
-PlayerSchema.pre('save', async function(next){
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    if (!this.friends.includes(this._id)) {
-        this.friends.push(this._id);
-    }
-    next();
-})
-PlayerSchema.methods.createJwt = function(){
-    console.log(this._id);
-    const token = jwt.sign({playerId : this._id, playerName : this.name}, process.env.JWT_SECRET, {expiresIn:`${process.env.LIFE_TIME}`});
+
+PlayerSchema.methods.createJwt = function () {
+    const token = jwt.sign({ playerId: this._id, playerName: this.name }, process.env.JWT_SECRET, { expiresIn: `${process.env.LIFE_TIME}` });
     return token;
-}
+};
 
-PlayerSchema.methods.comparePassword = async function(candidatepassword){
-    const issame = await bcrypt.compare(candidatepassword,this.password);
+PlayerSchema.methods.comparePassword = async function (candidatepassword) {
+    const issame = await bcrypt.compare(candidatepassword, this.password);
     return issame;
-}
-
+};
 
 module.exports = mongoose.model('Player', PlayerSchema);

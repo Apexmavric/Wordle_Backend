@@ -15,7 +15,6 @@ const getDetails = async(req, res)=>{
 const searchRecommendation = async(req, res)=>{
     const {name} = req.body;
     let player;
-    // console.log(name);
     if(name)
     {
         player = await Player.find({name : { $regex : `${name}`, $options : 'i'} });
@@ -34,68 +33,84 @@ const getAllPlayerDetails = async(req, res)=>{
     console.log('All Player Details');
     const player = await Player.find().sort({"stats.score" : -1});
     const newPlayer = player.map(e=>{
-       return {playerName : e.name, playerScore : e.stats.score, playerId : e._id};
+       return {playerName : e.name, playerScore : e.stats.score};
     })
     res.status(StatusCodes.OK).json({playerDetails : newPlayer});
 }
-const addFriends = async(req, res)=>{
-    const {playerId, playerName} = req.player;
+const addFriends = async (req, res) => {
+    const { playerId, playerName } = req.player;
     const friendName = req.body.name;
-    if(!friendName)
-    {
-        throw BadRequestError(`Friend's name cannot be empty !!`);
+
+    if (!friendName) {
+        throw new BadRequestError(`Friend's name cannot be empty !!`);
     }
-    if(!playerName)
-    {
-        throw BadRequestError(`Players's name cannot be empty !!`);
-    }   
-    const friend = await Player.findOne({name : friendName});
-    if(!friend)
-    {
-        throw BadRequestError(`Such a friend doesnt exist`);
-    }  
-    const { _id: friendId } = friend;
-    let player = await Player.findOne({ name: playerName });
-    if (!player.friends.includes(friendId)) {
-        player.friends.push(friendId);
+    if (!playerName) {
+        throw new BadRequestError(`Player's name cannot be empty !!`);
+    }
+
+    const friend = await Player.findOne({ name: friendName });
+    if (!friend) {
+        throw new BadRequestError(`Such a friend doesn't exist`);
+    }
+
+    const friendId = friend._id;
+    let player = await Player.findById(playerId);
+    if (!player) {
+        throw new BadRequestError(`Player not found`);
+    }
+
+    const existingFriend = player.friends.find(f => f.playerId.toString() === friendId.toString());
+    if (!existingFriend) {
+        player.friends.push({ playerId: friendId });
         player = await Player.findByIdAndUpdate(playerId, { friends: player.friends }, { new: true });
     }
-    res.status(StatusCodes.CREATED).json({ player });
-    
-}
-const getFriends = async(req, res)=>{
-    const {playerId, playerName} = req.player;
-    if(!playerName)
-    {
-        throw BadRequestError(`Players's name cannot be empty !!`);
-    }   
-    const player = await Player.findById(playerId);
-    if(!player)
-    {
-        throw BadRequestError(`Such a friend doesnt exist`);
-    }  
-    res.status(StatusCodes.CREATED).json({ playerFriends: player.friends });
-    
-}
+    else{
+        throw new BadRequestError(`${friendName} is already your friend!`);
+    }
+    res.status(StatusCodes.OK).json({msg : `Friend added successfully`});
+};
+const getFriends = async (req, res) => {
+    const { playerId, playerName } = req.player;
+    if (!playerName) {
+        throw new BadRequestError(`Player's name cannot be empty !!`);
+    }
+    const player = await Player.findById(playerId).populate('friends.playerId', 'name');
+    if (!player) {
+        throw new BadRequestError(`Such a player doesn't exist`);
+    }
+    const friendNames = player.friends.map(friend => friend.playerId.name);
+    res.status(StatusCodes.CREATED).json({ playerFriends: friendNames });
+};
 const deleteFriend = async (req, res) => {
     const { playerId, playerName } = req.player;
     const friendId = req.body.id;
+
     if (!friendId) {
-        throw BadRequestError(`Friend's name cannot be empty !!`);
+        throw new BadRequestError(`Friend's ID cannot be empty !!`);
     }
     if (!playerName) {
-        throw BadRequestError(`Player's name cannot be empty !!`);
+        throw new BadRequestError(`Player's name cannot be empty !!`);
     }
-    const friend = await Player.findOne({ _id : friendId });
+
+    const friend = await Player.findById(friendId);
     if (!friend) {
-        throw BadRequestError(`Such a friend doesn't exist`);
+        throw new BadRequestError(`Such a friend doesn't exist`);
     }
-    let player = await Player.findOne({ name: playerName });
-    if (player.friends.includes(friendId)) {
-        player.friends = player.friends.filter(id => id.toString() !== friendId.toString());
+
+    let player = await Player.findById(playerId);
+    if (!player) {
+        throw new BadRequestError(`Player not found`);
+    }
+
+    const existingFriendIndex = player.friends.findIndex(f => f.playerId.toString() === friendId.toString());
+    if (existingFriendIndex !== -1) {
+        player.friends.splice(existingFriendIndex, 1);
         player = await Player.findByIdAndUpdate(playerId, { friends: player.friends }, { new: true });
     }
-    res.status(StatusCodes.OK).json({player});
+    else{
+        throw new BadRequestError(`${friend.name} is not a friend!`);
+    }
+    res.status(StatusCodes.OK).json({msg : `Removed ${friend.name} from friends`});
 };
 
 const updateScore = async(req, res)=>{  
@@ -120,7 +135,6 @@ const getImage = async(req, res)=>{
 const uploadImage = async(req, res)=>{
    
     const {playerId} = req.player;
-    console.log(playerId);
     const player = await Player.findByIdAndUpdate(playerId, {data : req.file.buffer , contentType:req.file.mimetype}, {new: true});
     if(!player){
         throw BadRequestError('Player doesnt exist');
@@ -129,8 +143,11 @@ const uploadImage = async(req, res)=>{
 }
 
 const getTime = async(req, res)=>{
-    res.status(200).json({time : 120});
+    res.status(StatusCodes.OK).json({time : 120});
 }
+
+
+
 module.exports = {
     getDetails,
     addFriends,
@@ -141,5 +158,5 @@ module.exports = {
     getImage,
     uploadImage,
     getFriends,
-    getTime
+    getTime,
 }

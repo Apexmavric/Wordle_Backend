@@ -6,6 +6,7 @@ const app = express();
 const authRoutes = require('./routes/auth');
 const playerRoutes = require('./routes/player');
 const gameRoutes = require('./routes/game');
+const VerifyToken = require('./routes/verifyToken');
 const connectdB = require('./db/connect');
 const errorHandlerMiddleware = require('./middleware/errorhandler'); 
 const notfoundMiddleware = require('./middleware/not-found');
@@ -20,8 +21,11 @@ const io = new Server(server, {
       methods: ["GET", "POST"] 
     }
   });
-const { joinRoom, createRoom, LeaveRoom, kickOutPerson, Refresh , gameInfo} = require('./controllers/io');
-
+const { joinRoom, createRoom, LeaveRoom, kickOutPerson, Refresh , gameInfo, 
+    startGame, fetchTime,verifyWord, fetchLiveUserInfo,
+    inviteFriends, joinrequestAccept, getHint, disconnect, 
+    verifyGame, BacktoRoom, LeaveGame} = require('./controllers/io');
+io.use(ioauth);
 io.on('connection', (socket) => {
     socket.on('join-room', (roomName, playerName)=>{
         joinRoom(io,socket, roomName, playerName);
@@ -31,7 +35,6 @@ io.on('connection', (socket) => {
         createRoom(io, socket, playerName);
     });
     socket.on('leave-room', (roomName, playerName)=>{
-        console.log(" i was here")
         LeaveRoom(io, socket, roomName, playerName);
     });
 
@@ -45,6 +48,41 @@ io.on('connection', (socket) => {
     socket.on('game-infos',(roomName, rounds, time)=>{
         gameInfo(io, socket, roomName, rounds, time);
     } )
+
+    socket.on('start-game', (roomName,adminName, rounds,time)=>{
+        console.log(`${adminName} wants to start a game!`);
+        startGame(io, socket, roomName, adminName,rounds, time)
+    })
+    socket.on('fetch-time', (roomName)=>{
+        fetchTime(io, socket, roomName);
+    })
+    socket.on('verify-word', (roomName, playerName, word)=>{
+        verifyWord(io, socket, roomName, playerName, word);  
+    })
+    socket.on('fetch-live-players-info', (roomName)=>{
+        fetchLiveUserInfo(io, socket, roomName);
+    })
+    socket.on('invite', (name)=>{
+        inviteFriends(io, socket, name);
+    })
+    socket.on('join-request-accept' ,(token)=>{
+        joinrequestAccept(io, socket, token);
+    })
+    socket.on('get-hint-request', (roomName)=>{
+        getHint(io, socket, roomName)
+    } )
+    socket.on('disconnect', ()=>{
+        disconnect(io, socket);
+    })  
+    socket.on('verifyGame', (roomName)=>{
+        verifyGame(io, socket, roomName);
+    })
+    socket.on('backtoroom', (roomName)=>{
+        BacktoRoom(io, socket, roomName);
+    })
+    socket.on('leave-game', (roomName)=>{
+        LeaveGame(io, socket, roomName);
+    })
 });
 
 app.use(express.json());
@@ -52,6 +90,7 @@ app.use(cors());
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/player', authMiddleware, playerRoutes);
 app.use('/api/v1/game', authMiddleware, gameRoutes);
+app.use('/api/v1/verify', authMiddleware, VerifyToken);
 app.use(errorHandlerMiddleware);
 app.use(notfoundMiddleware);
 
