@@ -24,7 +24,7 @@ const io = new Server(server, {
 const { joinRoom, createRoom, LeaveRoom, kickOutPerson, Refresh , gameInfo, 
     startGame, fetchTime,verifyWord, fetchLiveUserInfo,
     inviteFriends, joinrequestAccept, getHint, disconnect, 
-    verifyGame, BacktoRoom, LeaveGame} = require('./controllers/io');
+    verifyGame, BacktoRoom, LeaveGame, joinrequestAcceptAdmin,RoomJoinRequest } = require('./controllers/io');
 io.use(ioauth);
 io.on('connection', (socket) => {
     socket.on('join-room', (roomName, playerName)=>{
@@ -82,6 +82,14 @@ io.on('connection', (socket) => {
     })
     socket.on('leave-game', (roomName)=>{
         LeaveGame(io, socket, roomName);
+    })
+
+    socket.on('join-request', (roomName)=>{
+        RoomJoinRequest(io, socket, roomName);
+    })
+
+    socket.on('admin-request-accept', (token)=>{
+        joinrequestAcceptAdmin(io, socket, admin);
     })
 });
 
