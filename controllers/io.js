@@ -57,7 +57,7 @@ const joinRoom = async(io, socket, roomName, playerName) => {
 };
 
 const Refresh = (socket,playerName)=>{
-    socketIds[playerName] = socket.id;
+    socketIds[playerName] = socket;
 }
 
 const createRoom = async(io, socket, playerName) => {
@@ -121,7 +121,7 @@ const kickOutPerson = async(io, socket, roomName, playerName, adminName)=>{
                 players : room.players
             }
             io.to(roomName).emit('users' , data);
-            io.to(socketIds[playerName]).emit('user-left');
+            io.to(socketIds[playerName].id).emit('user-left');
             delete Player[playerName];
         }
     }
@@ -269,19 +269,19 @@ const inviteFriends = (io, socket, name)=>{
     const adminname = socket.player.playerName;
     console.log(`Admin ${adminname} is sending request to ${name} for joining room ${Player[adminname]}`);
     const tokenWithRoomname = jwt.sign({playerName:name, roomName : Player[adminname]},process.env.JWT_SECRET, {expiresIn:'10s'});
-    io.to(socketIds[name]).emit('invite-request', tokenWithRoomname, adminname);
+    io.to(socketIds[name].id).emit('invite-request', tokenWithRoomname, adminname);
 }
 
 const RoomJoinRequest = async(io, socket, roomName)=>{
     const room = await Rooms.findById(roomName);
     const playerName = socket.player.playerName;
-    console.log(roomName);
     const {admin} = room;
+    console.log(playerName, roomName, admin);
     if(!Room[roomName])
     {   
         console.log(`Player ${playerName} is sending request for joining room ${Player[admin]}`);
         const tokenWithRoomname = jwt.sign({playerName:playerName, adminName:admin},process.env.JWT_SECRET, {expiresIn:'10s'});
-        io.to(socketIds[admin]).emit('join-request-player', tokenWithRoomname,playerName);
+        io.to(socketIds[admin].id).emit('join-request-player', tokenWithRoomname,playerName);
     }
 }
 
@@ -291,6 +291,7 @@ const joinrequestAcceptAdmin = async(io, socket, token)=>
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         const playerName = payload.playerName;
         const adminName = payload.adminName;
+        // console.log(playerName, adminName);
         if(adminName === socket.player.playerName){
             const roomName = Player[adminName];
             try{
@@ -317,6 +318,7 @@ const joinrequestAcceptAdmin = async(io, socket, token)=>
                 }
                 await Rooms.findByIdAndUpdate(roomName , {players : room.players} ,{ new : true});
                 io.to(roomName).emit('users' , data);
+                console.log('Player added!');
            }
            catch(err)
            {
@@ -417,14 +419,14 @@ const verifyGame = async(io, socket, roomName)=>
     {
         console.log(Room[roomName]);
         if (Player[playerName] === roomName && Room[roomName].isActive!=0){
-            io.to(socketIds[playerName]).emit('good');
+            io.to(socketIds[playerName].id).emit('good');
             console.log(`good, ${playerName}`)
         }    
         else
         {   
             console.log(`bad, ${playerName}`)
-            if(Player[playerName]!=roomName) io.to(socketIds[playerName]).emit('bad', "You are not allowed to enter this game!"); 
-            else if(Room[roomName].isActive === 0) io.to(socketIds[playerName]).emit('bad', "Looks like the game has already ended!"); 
+            if(Player[playerName]!=roomName) io.to(socketIds[playerName].id).emit('bad', "You are not allowed to enter this game!"); 
+            else if(Room[roomName].isActive === 0) io.to(socketIds[playerName].id).emit('bad', "Looks like the game has already ended!"); 
         }
     }
 }
@@ -467,5 +469,6 @@ module.exports = {
     BacktoRoom,
     LeaveGame,
     joinrequestAccept,
-    RoomJoinRequest
+    RoomJoinRequest,
+    joinrequestAcceptAdmin,
 }

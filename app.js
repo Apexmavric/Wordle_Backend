@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('admin-request-accept', (token)=>{
-        joinrequestAcceptAdmin(io, socket, admin);
+        joinrequestAcceptAdmin(io, socket, token);
     })
 });
 
