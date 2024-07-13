@@ -14,11 +14,26 @@ function getRandomInt(min, max) {
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min; 
   }
+
+
+const PlayerProfilePic = async(io, playerName, roomName)=>{
+    const player = await Players.findOne({name : playerName});
+    if(player)
+       {
+           const newPlayer = [{
+               contentType : player.contentType,
+               data : player.data,
+               player:playerName
+           }]
+           console.log(newPlayer);
+           io.to(roomName).emit('new-player', newPlayer); 
+       }
+}
 const joinRoom = async(io, socket, roomName, playerName) => {
     try{
          let room;
          room  = await Rooms.findById(roomName);
-         console.log(`${playerName} wants to join a room ${roomName} !`);
+        //  console.log(`${playerName} wants to join a room ${roomName} !`);
          socket.join(roomName);
          Player[playerName] = roomName;
          let data = {
@@ -26,17 +41,7 @@ const joinRoom = async(io, socket, roomName, playerName) => {
             players : room.players,
         }
          const playerExists = room.players.some(player => player.playerName === playerName);
-         const player = await Players.findOne({name : playerName});
-         if(player)
-            {
-                const newPlayer = {
-                    contentType : player.contentType,
-                    data : player.data,
-                    player:playerName
-                }
-                // console.log(newPlayer);
-                io.to(roomName).emit('new-player', newPlayer); 
-            }
+        
          if (playerExists) {
             io.to(roomName).emit('users' , data);
             return;
@@ -72,6 +77,7 @@ const createRoom = async(io, socket, playerName) => {
     }
     Player[playerName] = room._id;
     io.to(room._id).emit('users' , data);
+    PlayerProfilePic(io, playerName, room._id);
 }   
 const LeaveRoom = async(io, socket, roomName, playerName) => {
     try{
@@ -92,13 +98,14 @@ const LeaveRoom = async(io, socket, roomName, playerName) => {
             const randomIndex = getRandomInt(1,10) % (room.players.length);
             newAdmin = room.players[randomIndex].playerName;
         }
-        await Rooms.findByIdAndUpdate(roomName, {admin : newAdmin , players : room.players}, {new:true});
-        socket.leave(roomName);
         const data = {
             admin : newAdmin,
             players : room.players
         }
-        io.to(room._id).emit('users' , data);
+        socket.leave(roomName);
+        io.to(room._id).emit('users-updated' , data);
+        console.log(room.players);
+        await Rooms.findByIdAndUpdate(roomName, {admin : newAdmin , players : room.players}, {new:true});
     }
     catch(err)
     {
@@ -274,6 +281,7 @@ const inviteFriends = (io, socket, name)=>{
 
 const RoomJoinRequest = async(io, socket, roomName)=>{
     const room = await Rooms.findById(roomName);
+    if(!room) return;
     const playerName = socket.player.playerName;
     const {admin} = room;
     console.log(playerName, roomName, admin);
@@ -295,11 +303,11 @@ const joinrequestAcceptAdmin = async(io, socket, token)=>
         if(adminName === socket.player.playerName){
             const roomName = Player[adminName];
             try{
-                io.to(socket.id).emit('join-room-authenticated', roomName);
+                const playerSocket = socketIds[playerName];
+                io.to(playerSocket.id).emit('join-room-authenticated', roomName);
                 let room;
                 room  = await Rooms.findById(roomName);
                 console.log(`${playerName} wants to join a room ${roomName} !`);
-                const playerSocket = socketIds[playerName];
                 playerSocket.join(roomName);
                 Player[playerName] = roomName;
                 let data = {
@@ -318,7 +326,7 @@ const joinrequestAcceptAdmin = async(io, socket, token)=>
                 }
                 await Rooms.findByIdAndUpdate(roomName , {players : room.players} ,{ new : true});
                 io.to(roomName).emit('users' , data);
-                console.log('Player added!');
+                PlayerProfilePic(io, playerName, roomName);
            }
            catch(err)
            {
@@ -335,7 +343,6 @@ const joinrequestAccept = async(io, socket, token)=>
         const roomName = payload.roomName;
         try{
             io.to(socket.id).emit('join-room-authenticated', roomName);
-            // console.log(payload);
             let room;
             room  = await Rooms.findById(roomName);
             console.log(`${playerName} wants to join a room ${roomName} !`);
