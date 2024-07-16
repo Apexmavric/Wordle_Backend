@@ -25,7 +25,6 @@ const PlayerProfilePic = async(io, playerName, roomName)=>{
                data : player.data,
                player:playerName
            }]
-           console.log(newPlayer);
            io.to(roomName).emit('new-player', newPlayer); 
        }
 }
@@ -66,7 +65,7 @@ const Refresh = (socket,playerName)=>{
 }
 
 const createRoom = async(io, socket, playerName) => {
-    console.log(`${playerName} wants to create a room !`);
+    // console.log(`${playerName} wants to create a room !`);
     const adminPlayer = {playerName : playerName, score : 0, hint : 0};
     const room  = await Rooms.create({ players : [adminPlayer],admin : playerName});
     socket.join(room._id);
@@ -104,7 +103,7 @@ const LeaveRoom = async(io, socket, roomName, playerName) => {
         }
         socket.leave(roomName);
         io.to(room._id).emit('users-updated' , data);
-        console.log(room.players);
+        // console.log(room.players);
         await Rooms.findByIdAndUpdate(roomName, {admin : newAdmin , players : room.players}, {new:true});
     }
     catch(err)
@@ -299,7 +298,6 @@ const joinrequestAcceptAdmin = async(io, socket, token)=>
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         const playerName = payload.playerName;
         const adminName = payload.adminName;
-        // console.log(playerName, adminName);
         if(adminName === socket.player.playerName){
             const roomName = Player[adminName];
             try{

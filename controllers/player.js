@@ -30,7 +30,7 @@ const searchRecommendation = async(req, res)=>{
     res.status(StatusCodes.OK).json({playerDetails : newPlayer});
 }
 const getAllPlayerDetails = async(req, res)=>{
-    console.log('All Player Details');
+    // console.log('All Player Details');
     const player = await Player.find().sort({"stats.score" : -1});
     const newPlayer = player.map(e=>{
        return {playerName : e.name, playerScore : e.stats.score};
